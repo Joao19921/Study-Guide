@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpRight,
@@ -184,13 +184,54 @@ function RoadmapCard({ onOpen }: { onOpen: () => void }) {
 }
 
 export default function Home() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const router = useRouter();
   const [mobileNav, setMobileNav] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const toggleTask = (id: number) => setTasks((current) => current.map((task) => task.id === id ? { ...task, done: !task.done } : task));
+
+  // Load tasks from API on mount
+  useEffect(() => {
+    let mounted = true;
+    fetch(`/api/tasks`).then(async (res) => {
+      if (!res.ok) return;
+      try {
+        const data = await res.json();
+        if (!mounted) return;
+        // Map DB shape to UI Task shape (best-effort)
+        const mapped = data.map((t: any, idx: number) => ({
+          id: idx + 1 + (t.id ? 0 : 0),
+          // Keep numeric id unique in UI — real id preserved in server responses when used
+          title: t.title ?? "Untitled",
+          subtitle: t.subtitle ?? "",
+          tag: "Média",
+          color: "blue" as any,
+          done: !!t.done,
+          due: t.dueDate ? "Amanhã" : "Hoje",
+        }));
+        setTasks(mapped);
+      } catch (e) {
+        // ignore parse
+      }
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  const toggleTask = async (id: number) => {
+    // optimistic UI toggle — find by index
+    setTasks((current) => current.map((task) => (task.id === id ? { ...task, done: !task.done } : task)));
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ done: !tasks.find((t) => t.id === id)?.done }),
+      });
+    } catch (e) {
+      // best-effort: ignore failure
+    }
+  };
+
   const handleNavigate = (label: string) => {
     const routes: Record<string, string> = {
       Dashboard: "/",
@@ -207,7 +248,25 @@ export default function Home() {
     if (routes[label]) router.push(routes[label]);
     else toast(`${label}: módulo em construção no MVP visual`);
   };
-  const addTask = () => toast("Editor de tarefas conectado em breve");
+
+  const addTask = async () => {
+    try {
+      const res = await fetch(`/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Nova tarefa (app)", subtitle: "Criada pelo app" }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setTasks((s) => [{ id: created.id ?? Date.now(), title: created.title, subtitle: created.subtitle ?? "", tag: "Média", color: "blue", done: !!created.done, due: created.dueDate ? "Amanhã" : "Hoje" }, ...s]);
+        toast.success("Tarefa criada");
+      } else {
+        toast.error("Falha ao criar tarefa");
+      }
+    } catch (e) {
+      toast.error("Falha ao criar tarefa");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f7f6f1] text-[#193a5a]">
