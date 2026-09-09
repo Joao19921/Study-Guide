@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Study Hub
 
-## Getting Started
+Study Management System — centraliza rotina de estudos relacionando Objetivo → Certificação → Tema → Material → Tarefa → Sessão de estudo → Progresso, em um único projeto Next.js (frontend + API + autenticação + banco).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Next.js 15 (App Router) · TypeScript · React · Tailwind CSS · shadcn/ui · Route Handlers (API REST) · PostgreSQL (Neon) · Drizzle ORM · Auth.js (Google/GitHub OAuth) · Zod.
+
+## Arquitetura
+
+```
+Route Handlers (src/app/api/**)  — auth, parse do body, resposta HTTP
+        ↓
+Services (src/services/**)       — regras de negócio, validação Zod, checagem de posse
+        ↓
+Repositories (src/repositories/**) — acesso a dados (Drizzle), sempre filtrado por userId
+        ↓
+Drizzle ORM → PostgreSQL (Neon)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Regras de negócio puras e testáveis (priorização de tarefas, cálculo de progresso) ficam em `src/lib/business-rules.ts`, cobertas por testes em `src/lib/business-rules.test.ts`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Configuração local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Copie `.env.example` para `.env` e preencha:
+   - `DATABASE_URL`: string de conexão de um projeto Postgres no [Neon](https://neon.tech) (free tier).
+   - `AUTH_SECRET`: gere com `npx auth secret`.
+   - `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`: [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+   - `AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET`: [GitHub OAuth Apps](https://github.com/settings/developers).
 
-## Learn More
+2. Instale as dependências e aplique as migrations:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm install
+   npm run db:migrate
+   npm run db:seed   # opcional: popula dados de demonstração
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. Rode o servidor:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   npm run dev
+   ```
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Script              | Descrição                                      |
+| -------------------- | ----------------------------------------------- |
+| `npm run dev`         | Servidor de desenvolvimento                     |
+| `npm run build`       | Build de produção                               |
+| `npm run lint`        | ESLint                                          |
+| `npm run typecheck`   | `tsc --noEmit`                                  |
+| `npm run test`        | Testes unitários (Vitest)                       |
+| `npm run db:generate` | Gera uma nova migration a partir do schema      |
+| `npm run db:migrate`  | Aplica migrations pendentes no banco             |
+| `npm run db:seed`     | Popula um usuário e dados de demonstração        |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## CI/CD
+
+`.github/workflows/ci.yml` roda lint, type check, testes e build em cada push/PR para `main`.
+
+## Deploy
+
+- **Aplicação**: [Vercel](https://vercel.com) (suporte nativo a Next.js, Route Handlers e variáveis de ambiente). Configure as mesmas variáveis do `.env` no painel do projeto.
+- **Banco**: Neon Postgres (free tier).
+- **GitHub Pages não é compatível** com este projeto: ele serve apenas HTML/CSS/JS estático e não executa Route Handlers, Auth.js ou acesso a banco de dados em tempo de execução.
+
+## Autorização
+
+Usuários têm um `role` (`user` por padrão, `admin` para gestão). Rotas administrativas (`/api/admin/**`) exigem `role = admin` e permitem listar usuários e alterar papéis.

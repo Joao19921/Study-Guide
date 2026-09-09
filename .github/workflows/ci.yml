@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  # Build-time only: the app never connects during `next build` (route handlers
+  # are just imported to collect metadata), so a well-formed but fake URL is
+  # enough to satisfy the module-level DATABASE_URL check in src/db/index.ts.
+  DATABASE_URL: "postgresql://user:password@localhost:5432/studyhub_ci"
+  AUTH_SECRET: "ci-only-placeholder-secret-not-used-at-runtime"
+  AUTH_GOOGLE_ID: "ci-placeholder"
+  AUTH_GOOGLE_SECRET: "ci-placeholder"
+  AUTH_GITHUB_ID: "ci-placeholder"
+  AUTH_GITHUB_SECRET: "ci-placeholder"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build

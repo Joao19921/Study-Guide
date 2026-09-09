@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { toast } from "sonner";
@@ -11,27 +11,27 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
-  Check,
-  ChevronDown,
-  ChevronRight,
   CircleHelp,
-  Clock3,
-  FileText,
   FolderOpen,
   Grid2X2,
   LayoutDashboard,
   Menu,
-  MoreHorizontal,
-  Plus,
+  FileText,
   Search,
   Settings2,
   Sparkles,
   Target,
-  Timer,
   Trophy,
   X,
-  Zap,
 } from "lucide-react";
+import { GoalsModule } from "@/components/modules/GoalsModule";
+import { LibraryModule } from "@/components/modules/LibraryModule";
+import { ThemesModule } from "@/components/modules/ThemesModule";
+import { SessionsModule } from "@/components/modules/SessionsModule";
+import { CertificationsModule } from "@/components/modules/CertificationsModule";
+import { RoadmapModule } from "@/components/modules/RoadmapModule";
+import { ReportsModule } from "@/components/modules/ReportsModule";
+import { SearchModule } from "@/components/modules/SearchModule";
 
 const routes: Record<string, string> = {
   Dashboard: "/",
@@ -48,87 +48,158 @@ const routes: Record<string, string> = {
 
 const navGroups = [
   { label: "Visão geral", items: [{ icon: LayoutDashboard, label: "Dashboard" }, { icon: Search, label: "Busca global" }] },
-  { label: "Meu estudo", items: [{ icon: Target, label: "Metas", count: "3" }, { icon: BookOpen, label: "Biblioteca" }, { icon: FolderOpen, label: "Temas" }, { icon: CalendarDays, label: "Sessões" }] },
+  { label: "Meu estudo", items: [{ icon: Target, label: "Metas" }, { icon: BookOpen, label: "Biblioteca" }, { icon: FolderOpen, label: "Temas" }, { icon: CalendarDays, label: "Sessões" }] },
   { label: "Planejamento", items: [{ icon: Trophy, label: "Certificações" }, { icon: Grid2X2, label: "Roadmap anual" }, { icon: FileText, label: "Relatórios" }] },
 ];
 
-const moduleData: Record<string, { eyebrow: string; title: string; description: string; action: string }> = {
-  "/metas": { eyebrow: "PLANEJAMENTO PESSOAL", title: "Metas", description: "Transforme intenção em pequenos compromissos que cabem na sua semana.", action: "Nova meta" },
-  "/biblioteca": { eyebrow: "SEU ACERVO", title: "Biblioteca", description: "Todos os materiais, links e referências para estudar sem perder o foco.", action: "Adicionar recurso" },
-  "/temas": { eyebrow: "MAPA DE COMPETÊNCIAS", title: "Temas", description: "Organize o que você precisa dominar e acompanhe sua evolução por assunto.", action: "Novo tema" },
-  "/sessoes": { eyebrow: "HISTÓRICO DE FOCO", title: "Sessões de estudo", description: "Registre o tempo investido e entenda onde sua energia está indo.", action: "Registrar sessão" },
-  "/certificacoes": { eyebrow: "PRÓXIMOS MARCOS", title: "Certificações", description: "Planeje suas provas, conecte competências e chegue preparado ao dia do exame.", action: "Nova certificação" },
-  "/roadmap": { eyebrow: "VISÃO DE LONGO PRAZO", title: "Roadmap anual", description: "Uma visão clara dos seus próximos passos, trimestre por trimestre.", action: "Adicionar marco" },
-  "/configuracoes": { eyebrow: "PREFERÊNCIAS", title: "Configurações", description: "Ajuste seu espaço de estudos para trabalhar do seu jeito.", action: "Salvar alterações" },
-  "/relatorios": { eyebrow: "INSIGHTS DE APRENDIZADO", title: "Relatórios", description: "Entenda seu ritmo, encontre padrões e tome decisões melhores sobre sua rotina.", action: "Exportar relatório" },
-  "/busca": { eyebrow: "ENCONTRE RÁPIDO", title: "Busca global", description: "Pesquise temas, materiais, tarefas e certificações em um único lugar.", action: "" },
+const moduleData: Record<string, { eyebrow: string; title: string; description: string }> = {
+  "/metas": { eyebrow: "PLANEJAMENTO PESSOAL", title: "Metas", description: "Transforme intenção em pequenos compromissos que cabem na sua semana." },
+  "/biblioteca": { eyebrow: "SEU ACERVO", title: "Biblioteca", description: "Todos os materiais, links e referências para estudar sem perder o foco." },
+  "/temas": { eyebrow: "MAPA DE COMPETÊNCIAS", title: "Temas", description: "Organize o que você precisa dominar e acompanhe sua evolução por assunto." },
+  "/sessoes": { eyebrow: "HISTÓRICO DE FOCO", title: "Sessões de estudo", description: "Registre o tempo investido e entenda onde sua energia está indo." },
+  "/certificacoes": { eyebrow: "PRÓXIMOS MARCOS", title: "Certificações", description: "Planeje suas provas, conecte competências e chegue preparado ao dia do exame." },
+  "/roadmap": { eyebrow: "VISÃO DE LONGO PRAZO", title: "Roadmap anual", description: "Uma visão clara dos seus próximos passos, certificação por certificação." },
+  "/configuracoes": { eyebrow: "PREFERÊNCIAS", title: "Configurações", description: "Ajuste seu espaço de estudos para trabalhar do seu jeito." },
+  "/relatorios": { eyebrow: "INSIGHTS DE APRENDIZADO", title: "Relatórios", description: "Entenda seu ritmo, encontre padrões e tome decisões melhores sobre sua rotina." },
+  "/busca": { eyebrow: "ENCONTRE RÁPIDO", title: "Busca global", description: "Pesquise temas, materiais, tarefas e certificações em um único lugar." },
 };
 
-function Logo() { return <Link href="/" className="flex items-center gap-3"><div className="relative flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#193a5a] text-white shadow-[0_8px_18px_rgba(25,58,90,0.22)]"><BookOpen size={18} /><span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-[#fbfaf7] bg-[#f38b73]" /></div><div className="leading-none"><div className="font-display text-[19px] font-bold tracking-[-0.04em] text-[#163955]">study<span className="text-[#ef806e]">hub</span></div><div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#8c9aa4]">keep moving</div></div></Link>; }
+function Logo() {
+  return (
+    <Link href="/" className="flex items-center gap-3">
+      <div className="relative flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#193a5a] text-white shadow-[0_8px_18px_rgba(25,58,90,0.22)]"><BookOpen size={18} /><span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-[#fbfaf7] bg-[#f38b73]" /></div>
+      <div className="leading-none"><div className="font-display text-[19px] font-bold tracking-[-0.04em] text-[#163955]">study<span className="text-[#ef806e]">hub</span></div><div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#8c9aa4]">keep moving</div></div>
+    </Link>
+  );
+}
 
 function Sidebar({ close }: { close?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const navigate = (label: string) => { const path = routes[label]; if (path) router.push(path); else toast("Este módulo entra na próxima etapa."); if (close) close(); };
-  return <aside className="flex h-full w-[256px] shrink-0 flex-col border-r border-[#e6e5df] bg-[#fbfaf7] px-5 py-6"><div className="mb-10 flex items-center justify-between"><Logo />{close && <button onClick={close} className="rounded-lg p-2 text-[#8a99a4]"><X size={18} /></button>}</div><nav className="space-y-7">{navGroups.map((group) => <div key={group.label}><div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aab2b4]">{group.label}</div><div className="space-y-1">{group.items.map((item) => { const active = pathname === routes[item.label]; return <button key={item.label} onClick={() => navigate(item.label)} className={`group flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-semibold transition ${active ? "bg-[#e9f0f4] text-[#193a5a] shadow-[inset_3px_0_0_#ef806e]" : "text-[#7b8a94] hover:bg-[#f0eee8] hover:text-[#193a5a]"}`}><item.icon size={17} className={active ? "text-[#ef806e]" : "text-[#99a7ae]"} /><span className="flex-1">{item.label}</span>{item.count && <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-[#8b9aa3] shadow-sm">{item.count}</span>}</button>; })}</div></div>)}</nav><div className="mt-auto"><div className="relative mb-5 overflow-hidden rounded-[18px] bg-[#193a5a] p-4 text-white"><Sparkles size={18} className="mb-8 text-[#f7c870]" /><div className="text-[12px] font-medium leading-5 text-white/70">Seu ritmo está consistente. Pequenos passos viram grandes resultados.</div><button onClick={() => toast("Personalização de metas em breve")} className="mt-3 text-[11px] font-bold text-[#f7c870]">Ajustar metas <ArrowUpRight size={13} className="inline" /></button></div><button onClick={() => navigate("Configurações")} className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-semibold text-[#7b8a94] hover:bg-[#f0eee8]"><Settings2 size={17} /> Configurações</button><button onClick={() => toast("Central de ajuda em breve")} className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-semibold text-[#7b8a94] hover:bg-[#f0eee8]"><CircleHelp size={17} /> Central de ajuda</button></div></aside>;
+  const navigate = (label: string) => {
+    const path = routes[label];
+    if (path) router.push(path);
+    if (close) close();
+  };
+  return (
+    <aside className="flex h-full w-[256px] shrink-0 flex-col border-r border-[#e6e5df] bg-[#fbfaf7] px-5 py-6">
+      <div className="mb-10 flex items-center justify-between"><Logo />{close && <button onClick={close} className="rounded-lg p-2 text-[#8a99a4]"><X size={18} /></button>}</div>
+      <nav className="space-y-7">
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aab2b4]">{group.label}</div>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = pathname === routes[item.label];
+                return (
+                  <button key={item.label} onClick={() => navigate(item.label)} className={`group flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-semibold transition ${active ? "bg-[#e9f0f4] text-[#193a5a] shadow-[inset_3px_0_0_#ef806e]" : "text-[#7b8a94] hover:bg-[#f0eee8] hover:text-[#193a5a]"}`}>
+                    <item.icon size={17} className={active ? "text-[#ef806e]" : "text-[#99a7ae]"} /><span className="flex-1">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+      <div className="mt-auto">
+        <div className="relative mb-5 overflow-hidden rounded-[18px] bg-[#193a5a] p-4 text-white">
+          <Sparkles size={18} className="mb-8 text-[#f7c870]" />
+          <div className="text-[12px] font-medium leading-5 text-white/70">Seu ritmo está consistente. Pequenos passos viram grandes resultados.</div>
+          <button onClick={() => navigate("Metas")} className="mt-3 text-[11px] font-bold text-[#f7c870]">Ajustar metas <ArrowUpRight size={13} className="inline" /></button>
+        </div>
+        <button onClick={() => navigate("Configurações")} className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-semibold text-[#7b8a94] hover:bg-[#f0eee8]"><Settings2 size={17} /> Configurações</button>
+        <button onClick={() => toast("Central de ajuda em breve")} className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-left text-[13px] font-semibold text-[#7b8a94] hover:bg-[#f0eee8]"><CircleHelp size={17} /> Central de ajuda</button>
+      </div>
+    </aside>
+  );
 }
 
 function Header({ onMenu, title }: { onMenu: () => void; title: string }) {
   const { data: session } = useSession();
   const displayName = session?.user?.name ?? session?.user?.email ?? "Você";
   const initials = displayName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-  return <header className="flex h-[82px] items-center justify-between border-b border-[#e6e5df] bg-[#fbfaf7]/85 px-5 backdrop-blur-xl sm:px-8 lg:px-11"><div className="flex items-center gap-3"><button onClick={onMenu} className="rounded-xl p-2 text-[#70828d] lg:hidden"><Menu size={21} /></button><div className="hidden h-9 w-px bg-[#e3e4df] lg:block" /><div className="text-[12px] font-bold text-[#94a1a5]">{title.toUpperCase()}</div></div><div className="flex items-center gap-2 sm:gap-4"><button onClick={() => toast("Busca global em breve")} className="flex items-center gap-2 rounded-[11px] px-2.5 py-2 text-[#92a0a4] hover:bg-[#efeee8]"><Search size={18} /><span className="hidden text-[11px] font-semibold sm:block">Buscar</span><kbd className="hidden rounded bg-[#f0efe9] px-1.5 py-0.5 text-[9px] font-bold md:block">⌘ K</kbd></button><button onClick={() => toast("Você está em dia! Nenhuma nova notificação.")} className="relative rounded-[11px] p-2 text-[#92a0a4]"><Bell size={18} /><span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#ef806e] ring-2 ring-[#fbfaf7]" /></button><div className="hidden h-7 w-px bg-[#e3e4df] sm:block" /><button onClick={() => signOut({ callbackUrl: "/login" })} className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f3b5a4] text-[11px] font-bold text-[#754b43]">{initials || "?"}</div><div className="hidden text-left sm:block"><div className="text-[11px] font-bold text-[#375668]">{displayName}</div><div className="text-[9px] font-semibold text-[#a0adaf]">Sair</div></div><ChevronDown size={14} className="hidden text-[#9aa6a8] sm:block" /></button></div></header>;
+  return (
+    <header className="flex h-[82px] items-center justify-between border-b border-[#e6e5df] bg-[#fbfaf7]/85 px-5 backdrop-blur-xl sm:px-8 lg:px-11">
+      <div className="flex items-center gap-3"><button onClick={onMenu} className="rounded-xl p-2 text-[#70828d] lg:hidden"><Menu size={21} /></button><div className="hidden h-9 w-px bg-[#e3e4df] lg:block" /><div className="text-[12px] font-bold text-[#94a1a5]">{title.toUpperCase()}</div></div>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <button onClick={() => toast("Você está em dia! Nenhuma nova notificação.")} className="relative rounded-[11px] p-2 text-[#92a0a4]"><Bell size={18} /></button>
+        <div className="hidden h-7 w-px bg-[#e3e4df] sm:block" />
+        <button onClick={() => signOut({ callbackUrl: "/login" })} className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f3b5a4] text-[11px] font-bold text-[#754b43]">{initials || "?"}</div>
+          <div className="hidden text-left sm:block"><div className="text-[11px] font-bold text-[#375668]">{displayName}</div><div className="text-[9px] font-semibold text-[#a0adaf]">Sair</div></div>
+        </button>
+      </div>
+    </header>
+  );
 }
 
-const resourceRows = [
-  ["React — The Complete Guide", "Curso", "Frontend", "Em andamento", "68%"],
-  ["Designing Data-Intensive Applications", "Livro", "Arquitetura", "Não iniciado", "0%"],
-  ["SQLBolt — exercícios práticos", "Link", "Backend", "Em andamento", "42%"],
-  ["AWS Skill Builder", "Plataforma", "Cloud", "Em andamento", "31%"],
-];
-const themes = [
-  ["Frontend", "Hooks, componentes e arquitetura React", "7 materiais", 78, "#ef806e"],
-  ["Backend", "APIs, banco de dados e segurança", "4 materiais", 46, "#80aeca"],
-  ["Arquitetura", "Decisões, padrões e qualidade", "5 materiais", 61, "#70b8a6"],
-  ["Cloud", "AWS, deploy e observabilidade", "3 materiais", 32, "#e5b766"],
-];
+function SettingsPanel() {
+  const { data: session } = useSession();
+  return (
+    <div className="rounded-[20px] bg-[#193a5a] p-6 text-white">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f3b5a4] text-[16px] font-bold text-[#754b43]">{(session?.user?.name ?? "?").slice(0, 2).toUpperCase()}</div>
+      <h2 className="mt-5 font-display text-[23px] font-bold tracking-[-0.04em]">{session?.user?.name ?? "Sua conta"}</h2>
+      <p className="mt-1 text-[12px] text-[#9eb9c4]">{session?.user?.email}</p>
+      <div className="mt-4 inline-block rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#e7c98d]">
+        {(session?.user as { role?: string } | undefined)?.role === "admin" ? "Administrador" : "Usuário"}
+      </div>
+      <div className="mt-8 border-t border-white/10 pt-5 text-[11px] leading-5 text-[#a8c0c9]">Seu perfil organiza preferências, metas padrão e a forma como o StudyHub te ajuda a manter consistência.</div>
+      <button onClick={() => signOut({ callbackUrl: "/login" })} className="mt-6 text-[11px] font-bold text-[#f7c870]">Sair da conta</button>
+    </div>
+  );
+}
 
 function ModuleContent({ path }: { path: string }) {
   const data = moduleData[path] || moduleData["/metas"];
-  const [query, setQuery] = useState("");
-  const [checked, setChecked] = useState<number[]>([2]);
-  const [tab, setTab] = useState("Todos");
-  const [sessionOpen, setSessionOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const add = () => { if (path === "/sessoes") setSessionOpen(true); else toast(`${data.action} pronto para conectar ao backend`); };
-  const filteredResources = useMemo(() => resourceRows.filter((row) => row.join(" ").toLowerCase().includes(query.toLowerCase())), [query]);
-  const sectionTitle = path === "/biblioteca" ? "Materiais salvos" : path === "/temas" ? "Suas competências" : path === "/sessoes" ? "Atividade recente" : path === "/roadmap" ? "Linha do tempo 2026" : path === "/certificacoes" ? "Certificações em foco" : path === "/configuracoes" ? "Preferências da conta" : path === "/relatorios" ? "Resumo de desempenho" : "Visão geral";
-  return <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-8 sm:px-8 lg:px-11"><div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><Link href="/" className="mb-3 flex w-fit items-center gap-1 text-[11px] font-bold text-[#9aa6a9] hover:text-[#193a5a]"><ArrowLeft size={14} /> Voltar ao dashboard</Link><div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#ef806e]"><span className="h-1.5 w-1.5 rounded-full bg-[#ef806e]" /> {data.eyebrow}</div><h1 className="font-display text-[35px] font-bold leading-none tracking-[-0.065em] text-[#193a5a] sm:text-[42px]">{data.title}</h1><p className="mt-3 max-w-[650px] text-[13px] font-medium text-[#8e9da1]">{data.description}</p></div>{data.action && <button onClick={add} className="flex w-fit items-center gap-2 rounded-[12px] bg-[#ef806e] px-4 py-3 text-[12px] font-bold text-white shadow-[0_8px_17px_rgba(239,128,110,0.2)] hover:bg-[#dd6d5f]"><Plus size={16} /> {data.action}</button>}</div>
-  {path === "/configuracoes" ? <SettingsPanel saved={saved} setSaved={setSaved} /> : path === "/roadmap" ? <Roadmap /> : path === "/certificacoes" ? <Certifications /> : path === "/relatorios" ? <ReportsPanel /> : path === "/busca" ? <SearchPanel query={query} setQuery={setQuery} /> : <><div className="mb-5 grid gap-4 sm:grid-cols-3"><MiniStat label={path === "/sessoes" ? "Horas registradas" : "Itens ativos"} value={path === "/sessoes" ? "42h18" : path === "/biblioteca" ? "19" : path === "/temas" ? "12" : "08"} detail={path === "/sessoes" ? "+18% este mês" : "neste ciclo"} color="mint" /><MiniStat label="Em progresso" value={path === "/biblioteca" ? "08" : "74%"} detail="ritmo saudável" color="blue" /><MiniStat label="Próximo passo" value={path === "/sessoes" ? "45m" : "Hoje"} detail="revisar hooks" color="coral" /></div><div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-5 shadow-[0_5px_20px_rgba(36,50,58,0.035)] sm:p-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><h2 className="font-display text-[18px] font-bold tracking-[-0.035em] text-[#193a5a]">{sectionTitle}</h2><p className="mt-1 text-[11px] font-medium text-[#9aa5aa]">Atualizado hoje, às 09:42</p></div>{path === "/biblioteca" && <div className="flex items-center gap-2 rounded-xl border border-[#e2e6e2] bg-white px-3 py-2"><Search size={15} className="text-[#a5b0b1]" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar recurso" className="w-[150px] bg-transparent text-[11px] font-semibold outline-none placeholder:text-[#b1bcbd]" /></div>}{path === "/temas" && <div className="flex gap-1 rounded-lg bg-[#f5f5f0] p-1">{["Todos", "Ativos", "Concluídos"].map((item) => <button key={item} onClick={() => setTab(item)} className={`rounded-md px-3 py-1.5 text-[10px] font-bold ${tab === item ? "bg-white text-[#193a5a] shadow-sm" : "text-[#a1abad]"}`}>{item}</button>)}</div>}</div>{path === "/biblioteca" ? <ResourceTable rows={filteredResources} /> : path === "/temas" ? <ThemeGrid /> : <SessionOrGoals path={path} checked={checked} setChecked={setChecked} />}</div></>}
-  {sessionOpen && <SessionModal close={() => setSessionOpen(false)} />}</div>;
+  const searchParams = useSearchParams();
+
+  return (
+    <div className="mx-auto max-w-[1440px] px-5 pb-12 pt-8 sm:px-8 lg:px-11">
+      <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <Link href="/" className="mb-3 flex w-fit items-center gap-1 text-[11px] font-bold text-[#9aa6a9] hover:text-[#193a5a]"><ArrowLeft size={14} /> Voltar ao dashboard</Link>
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#ef806e]"><span className="h-1.5 w-1.5 rounded-full bg-[#ef806e]" /> {data.eyebrow}</div>
+          <h1 className="font-display text-[35px] font-bold leading-none tracking-[-0.065em] text-[#193a5a] sm:text-[42px]">{data.title}</h1>
+          <p className="mt-3 max-w-[650px] text-[13px] font-medium text-[#8e9da1]">{data.description}</p>
+        </div>
+      </div>
+
+      {path === "/configuracoes" ? (
+        <SettingsPanel />
+      ) : path === "/roadmap" ? (
+        <RoadmapModule />
+      ) : path === "/certificacoes" ? (
+        <CertificationsModule />
+      ) : path === "/relatorios" ? (
+        <ReportsModule />
+      ) : path === "/busca" ? (
+        <SearchModule initialQuery={searchParams.get("q") ?? ""} />
+      ) : path === "/biblioteca" ? (
+        <div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-5 shadow-[0_5px_20px_rgba(36,50,58,0.035)] sm:p-6"><LibraryModule /></div>
+      ) : path === "/temas" ? (
+        <div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-5 shadow-[0_5px_20px_rgba(36,50,58,0.035)] sm:p-6"><ThemesModule /></div>
+      ) : path === "/sessoes" ? (
+        <SessionsModule />
+      ) : (
+        <div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-5 shadow-[0_5px_20px_rgba(36,50,58,0.035)] sm:p-6"><GoalsModule /></div>
+      )}
+    </div>
+  );
 }
 
-function MiniStat({ label, value, detail, color }: { label: string; value: string; detail: string; color: string }) { const colors: Record<string, string> = { mint: "bg-[#e6f1ef] text-[#70aa9c]", blue: "bg-[#e9f0f4] text-[#80aeca]", coral: "bg-[#fff0e8] text-[#ef806e]" }; return <div className="rounded-[18px] border border-[#e6e5df] bg-[#fffefa] p-5"><div className={`mb-4 flex h-9 w-9 items-center justify-center rounded-[11px] ${colors[color]}`}><Zap size={16} /></div><div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9aa5aa]">{label}</div><div className="mt-1 flex items-end gap-2"><span className="font-display text-[27px] font-bold tracking-[-0.06em] text-[#193a5a]">{value}</span><span className="mb-1 text-[10px] font-semibold text-[#91a0a4]">{detail}</span></div></div>; }
-
-function ResourceTable({ rows }: { rows: string[][] }) { return <div className="mt-6 overflow-x-auto"><table className="w-full min-w-[650px] border-collapse"><thead><tr className="border-b border-[#efeee8] text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[#a4adae]"><th className="pb-3 pl-2">Recurso</th><th className="pb-3">Tipo</th><th className="pb-3">Tema</th><th className="pb-3">Status</th><th className="pb-3">Progresso</th><th /></tr></thead><tbody>{rows.map((row) => <tr key={row[0]} className="group border-b border-[#f3f2ed] text-[12px] font-semibold text-[#516773] last:border-0 hover:bg-[#fbfaf7]"><td className="py-4 pl-2"><div className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-[#e9f0f4] text-[#80aeca]"><FileText size={15} /></div>{row[0]}</div></td><td className="py-4 text-[#91a0a4]">{row[1]}</td><td className="py-4"><span className="rounded-full bg-[#f5f5f0] px-2.5 py-1 text-[10px] text-[#819097]">{row[2]}</span></td><td className="py-4"><span className={`flex items-center gap-1.5 text-[10px] ${row[3] === "Não iniciado" ? "text-[#a8b1b1]" : "text-[#70aa9c]"}`}><span className={`h-1.5 w-1.5 rounded-full ${row[3] === "Não iniciado" ? "bg-[#c5ccca]" : "bg-[#70b8a6]"}`} />{row[3]}</span></td><td className="py-4"><div className="flex items-center gap-2"><div className="h-1.5 w-[56px] overflow-hidden rounded-full bg-[#edf0ed]"><div className="h-full rounded-full bg-[#70b8a6]" style={{ width: row[4] }} /></div><span className="text-[10px] text-[#9aa5a8]">{row[4]}</span></div></td><td className="py-4"><button onClick={() => toast(`Opções para ${row[0]}`)} className="rounded p-1 text-[#b2bbba] hover:bg-[#ecece7]"><MoreHorizontal size={16} /></button></td></tr>)}</tbody></table></div>; }
-
-function ThemeGrid() { return <div className="mt-6 grid gap-4 sm:grid-cols-2">{themes.map(([name, desc, count, progress, color]) => <div key={name as string} className="rounded-[16px] border border-[#eeece6] p-5 transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between"><div className="flex h-10 w-10 items-center justify-center rounded-[12px]" style={{ backgroundColor: `${color}20`, color: color as string }}><FolderOpen size={18} /></div><button onClick={() => toast(`Detalhes de ${name}`)} className="rounded-lg p-1 text-[#aab4b3] hover:bg-[#f1f0eb]"><ArrowUpRight size={16} /></button></div><h3 className="mt-5 font-display text-[17px] font-bold tracking-[-0.035em] text-[#193a5a]">{name}</h3><p className="mt-1 text-[11px] font-medium text-[#99a5a7]">{desc}</p><div className="mt-5 flex items-center justify-between text-[10px] font-bold text-[#9ca7a8]"><span>{count}</span><span>{progress}%</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#eef0ed]"><div className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: color as string }} /></div></div>)}</div>; }
-
-function SessionOrGoals({ path, checked, setChecked }: { path: string; checked: number[]; setChecked: (items: number[]) => void }) { const items = path === "/sessoes" ? [{ title: "Revisar hooks do React", meta: "Hoje · 45 min · Frontend", value: "+45m" }, { title: "Praticar consultas SQL", meta: "Ontem · 30 min · Backend", value: "+30m" }, { title: "Clean Code — capítulo 4", meta: "17 jul · 25 min · Arquitetura", value: "+25m" }, { title: "Exercícios de TypeScript", meta: "16 jul · 40 min · Frontend", value: "+40m" }] : [{ title: "Estudar 12 horas esta semana", meta: "Meta semanal · 8 de 12 horas", value: "67%" }, { title: "Concluir módulo de React", meta: "Meta mensal · vence em 12 dias", value: "74%" }, { title: "Ler 2 capítulos de Clean Code", meta: "Meta trimestral · vence em 28 dias", value: "50%" }]; return <div className="mt-6 space-y-2">{items.map((item, index) => <div key={item.title} className="flex items-center gap-4 rounded-[13px] border border-[#f0efe9] px-3 py-3 transition hover:bg-[#fbfaf7]"><button onClick={() => setChecked(checked.includes(index) ? checked.filter((item) => item !== index) : [...checked, index])} className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${checked.includes(index) ? "bg-[#70b8a6] text-white" : "bg-[#e9f0f4] text-[#80aeca]"}`}>{checked.includes(index) ? <Check size={14} strokeWidth={3} /> : path === "/sessoes" ? <Clock3 size={14} /> : <Target size={14} />}</button><div className="min-w-0 flex-1"><div className={`text-[12px] font-bold text-[#506773] ${checked.includes(index) ? "line-through opacity-60" : ""}`}>{item.title}</div><div className="mt-1 text-[10px] font-medium text-[#a0abad]">{item.meta}</div></div><div className="text-[12px] font-bold text-[#70aa9c]">{item.value}</div><button onClick={() => toast(`Mais ações para ${item.title}`)} className="text-[#b4bcba]"><MoreHorizontal size={16} /></button></div>)}</div>; }
-
-function Certifications() { return <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]"><div className="rounded-[20px] bg-[#193a5a] p-7 text-white"><div className="flex items-start justify-between"><div><div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#91b7c8]">EM FOCO AGORA</div><h2 className="mt-3 font-display text-[27px] font-bold tracking-[-0.05em]">AWS Cloud Practitioner</h2><p className="mt-2 text-[12px] font-medium text-[#a6bfca]">Fundamentos de cloud e serviços AWS</p></div><div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#315977]"><Trophy className="text-[#f7c870]" /></div></div><div className="mt-10 flex items-end justify-between"><div><div className="text-[10px] text-[#91b7c8]">Progresso geral</div><div className="mt-1 font-display text-[39px] font-bold tracking-[-0.06em]">62<span className="text-[20px] text-[#91b7c8]">%</span></div></div><div className="text-right text-[10px] text-[#91b7c8]">Exame em<br /><b className="text-white">24 de agosto</b></div></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-[#315977]"><div className="h-full w-[62%] rounded-full bg-[#f7c870]" /></div><div className="mt-6 grid grid-cols-3 gap-2 text-center"><div className="rounded-xl bg-white/10 p-3"><div className="font-display text-lg font-bold">8</div><div className="text-[9px] text-[#9ebac5]">temas</div></div><div className="rounded-xl bg-white/10 p-3"><div className="font-display text-lg font-bold">42</div><div className="text-[9px] text-[#9ebac5]">questões</div></div><div className="rounded-xl bg-white/10 p-3"><div className="font-display text-lg font-bold">74%</div><div className="text-[9px] text-[#9ebac5]">simulados</div></div></div></div><div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-6"><div className="flex items-center justify-between"><h2 className="font-display text-[18px] font-bold text-[#193a5a]">Outros planos</h2><button onClick={() => toast("Nova certificação em breve")} className="text-[#ef806e]"><Plus size={18} /></button></div><div className="mt-6 space-y-4">{[["Google UX Design", "Setembro", "28%", "#ef806e"], ["English Proficiency", "Novembro", "41%", "#80aeca"], ["Docker Associate", "Dezembro", "12%", "#70b8a6"]].map((item) => <div key={item[0]} className="rounded-[14px] border border-[#f0efe9] p-4"><div className="flex items-center justify-between"><span className="text-[12px] font-bold text-[#506773]">{item[0]}</span><span className="text-[10px] font-bold text-[#a0abad]">{item[1]}</span></div><div className="mt-3 flex items-center gap-2"><div className="h-1.5 flex-1 rounded-full bg-[#edf0ed]"><div className="h-full rounded-full" style={{ width: item[2], backgroundColor: item[3] }} /></div><span className="text-[10px] font-bold text-[#8e9c9f]">{item[2]}</span></div></div>)}</div></div></div>; }
-
-function Roadmap() { return <div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-6"><div className="grid gap-5 lg:grid-cols-4">{[["Q1", "Fundação", ["React avançado", "TypeScript", "Clean Code"]], ["Q2", "Construção", ["Node.js APIs", "SQL e bancos", "Testes"]], ["Q3", "Certificação", ["AWS Cloud", "Simulados", "Exame AWS"]], ["Q4", "Expansão", ["Docker", "Inglês", "Projeto final"]]].map(([quarter, title, items], idx) => <div key={quarter as string} className="relative rounded-[16px] bg-[#fbfaf7] p-5"><div className="flex items-center justify-between"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${idx === 2 ? "bg-[#fff0e8] text-[#ef806e]" : "bg-[#e9f0f4] text-[#80aeca]"}`}>{quarter}</span>{idx === 2 && <span className="h-2 w-2 rounded-full bg-[#ef806e]" />}</div><h3 className="mt-5 font-display text-[17px] font-bold text-[#193a5a]">{title}</h3><div className="mt-4 space-y-3">{(items as string[]).map((item, itemIndex) => <div key={item} className="flex items-center gap-2 text-[11px] font-semibold text-[#7d8d94]"><span className={`flex h-4 w-4 items-center justify-center rounded-full ${idx === 0 || (idx === 2 && itemIndex === 0) ? "bg-[#70b8a6] text-white" : "border border-[#d7dfdc]"}`}>{idx === 0 || (idx === 2 && itemIndex === 0) ? <Check size={10} /> : null}</span>{item}</div>)}</div></div>)}</div><div className="mt-8 rounded-[16px] bg-[#f5d7ca] p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b6557]">PRÓXIMO PASSO</div><div className="mt-1 font-display text-[18px] font-bold text-[#643e37]">Finalizar módulo de AWS Cloud</div><div className="mt-1 text-[11px] font-medium text-[#956357]">3 aulas restantes · estimativa de 2h30</div></div><button onClick={() => toast("Abrindo conteúdo do módulo")} className="flex items-center gap-2 rounded-[10px] bg-[#193a5a] px-4 py-2.5 text-[11px] font-bold text-white">Continuar <ArrowUpRight size={14} /></button></div></div></div>; }
-
-function ReportsPanel() { return <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]"><div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-6"><div className="flex items-start justify-between"><div><h2 className="font-display text-[18px] font-bold text-[#193a5a]">Horas focadas</h2><p className="mt-1 text-[11px] font-medium text-[#9aa5aa]">Últimos 30 dias</p></div><span className="rounded-full bg-[#e6f1ef] px-2.5 py-1 text-[10px] font-bold text-[#70aa9c]">+18%</span></div><div className="mt-8 flex h-[200px] items-end gap-2 border-b border-[#efeee8] px-2">{[42, 58, 48, 71, 64, 83, 67, 92, 73, 86, 78, 96].map((height, index) => <div key={index} className="group flex flex-1 flex-col items-center justify-end gap-2"><div className="w-full max-w-[24px] shrink-0 rounded-t-[7px] bg-[#a9d2c7] transition group-hover:bg-[#ef806e]" style={{ height: `${height * 1.35}px` }} /><span className="text-[9px] font-bold text-[#a9b2b2]">{index + 1}</span></div>)}</div><div className="mt-5 flex items-end justify-between"><div><span className="font-display text-[28px] font-bold tracking-[-0.06em] text-[#193a5a]">42h18</span><span className="ml-2 text-[10px] font-semibold text-[#70aa9c]">neste período</span></div><div className="text-right text-[10px] font-semibold text-[#a0abad]">média diária<br /><b className="text-[#193a5a]">1h25</b></div></div></div><div className="space-y-5"><div className="rounded-[20px] bg-[#193a5a] p-6 text-white"><div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#91b7c8]">CONSISTÊNCIA</div><div className="mt-4 flex items-end gap-3"><span className="font-display text-[40px] font-bold tracking-[-0.07em]">82%</span><span className="mb-2 text-[10px] font-semibold text-[#a9c1cb]">dos dias com foco</span></div><div className="mt-4 h-2 rounded-full bg-[#315977]"><div className="h-full w-[82%] rounded-full bg-[#f7c870]" /></div></div><div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-6"><h2 className="font-display text-[17px] font-bold text-[#193a5a]">Onde você investe tempo</h2><div className="mt-5 space-y-4">{[["Frontend", "41%", "#ef806e"], ["Backend", "27%", "#80aeca"], ["Arquitetura", "19%", "#70b8a6"], ["Cloud", "13%", "#e5b766"]].map((item) => <div key={item[0]}><div className="flex justify-between text-[10px] font-bold text-[#788b93]"><span>{item[0]}</span><span>{item[1]}</span></div><div className="mt-2 h-1.5 rounded-full bg-[#edf0ed]"><div className="h-full rounded-full" style={{ width: item[1], backgroundColor: item[2] }} /></div></div>)}</div></div></div></div>; }
-
-function SearchPanel({ query, setQuery }: { query: string; setQuery: (value: string) => void }) { const results = ["Revisar hooks do React", "React — The Complete Guide", "AWS Cloud Practitioner", "Meta semanal de 12 horas", "Roadmap anual 2026", "Praticar consultas SQL"].filter((item) => item.toLowerCase().includes(query.toLowerCase())); return <div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-6"><div className="flex max-w-[680px] items-center gap-3 rounded-[13px] border border-[#e0e6e2] bg-white px-4 py-3 focus-within:border-[#ef806e]"><Search size={18} className="text-[#9eabad]" /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Digite para buscar no StudyHub..." className="w-full bg-transparent text-[13px] font-semibold text-[#45606d] outline-none placeholder:text-[#b2bcbd]" /><kbd className="rounded bg-[#f1f0eb] px-2 py-1 text-[9px] font-bold text-[#a3adae]">ESC</kbd></div><div className="mt-7 flex items-center justify-between"><h2 className="font-display text-[18px] font-bold text-[#193a5a]">{query ? "Resultados encontrados" : "Acesso rápido"}</h2><span className="text-[10px] font-bold text-[#a0abad]">{results.length} itens</span></div><div className="mt-4 grid gap-2 sm:grid-cols-2">{results.map((item, index) => <button key={item} onClick={() => toast(`Abrindo ${item}`)} className="group flex items-center gap-3 rounded-[13px] border border-[#f0efe9] p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#fbfaf7] hover:shadow-sm"><div className={`flex h-9 w-9 items-center justify-center rounded-[10px] ${index % 3 === 0 ? "bg-[#fff0e8] text-[#ef806e]" : index % 3 === 1 ? "bg-[#e9f0f4] text-[#80aeca]" : "bg-[#e6f1ef] text-[#70aa9c]"}`}><Search size={15} /></div><div className="min-w-0 flex-1"><div className="truncate text-[12px] font-bold text-[#506773]">{item}</div><div className="mt-1 text-[10px] font-medium text-[#a0abad]">Clique para abrir detalhes</div></div><ChevronRight size={15} className="text-[#b2bbba] transition group-hover:translate-x-1" /></button>)}</div>{results.length === 0 && <div className="py-12 text-center text-[12px] font-semibold text-[#9da8aa]">Nenhum resultado encontrado. Tente outro termo.</div>}</div>; }
-
-function SettingsPanel({ saved, setSaved }: { saved: boolean; setSaved: (value: boolean) => void }) {
-  const { data: session } = useSession();
-  return <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]"><div className="rounded-[20px] bg-[#193a5a] p-6 text-white"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f3b5a4] text-[16px] font-bold text-[#754b43]">{(session?.user?.name ?? "?").slice(0, 2).toUpperCase()}</div><h2 className="mt-5 font-display text-[23px] font-bold tracking-[-0.04em]">{session?.user?.name ?? "Sua conta"}</h2><p className="mt-1 text-[12px] text-[#9eb9c4]">{session?.user?.email}</p><div className="mt-8 border-t border-white/10 pt-5 text-[11px] leading-5 text-[#a8c0c9]">Seu perfil organiza preferências, metas padrão e a forma como o StudyHub te ajuda a manter consistência.</div><button onClick={() => signOut({ callbackUrl: "/login" })} className="mt-6 text-[11px] font-bold text-[#f7c870]">Sair da conta</button></div><div className="rounded-[20px] border border-[#e6e5df] bg-[#fffefa] p-6"><div className="space-y-6"><label className="block"><span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8f9ca0]">Nome de exibição</span><input defaultValue={session?.user?.name ?? ""} className="mt-2 w-full rounded-[11px] border border-[#e2e6e2] px-3 py-3 text-[12px] font-semibold text-[#45606d] outline-none focus:border-[#ef806e]" /></label><label className="block"><span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8f9ca0]">Meta semanal de estudo</span><select defaultValue="12" className="mt-2 w-full rounded-[11px] border border-[#e2e6e2] bg-white px-3 py-3 text-[12px] font-semibold text-[#45606d] outline-none"><option value="8">8 horas</option><option value="12">12 horas</option><option value="16">16 horas</option></select></label><div className="flex items-center justify-between rounded-[12px] bg-[#fbfaf7] p-4"><div><div className="text-[12px] font-bold text-[#506773]">Lembretes de foco</div><div className="mt-1 text-[10px] text-[#9da8aa]">Receber lembretes às 09:00</div></div><button className="flex h-6 w-11 items-center rounded-full bg-[#70b8a6] p-1"><span className="ml-auto h-4 w-4 rounded-full bg-white shadow-sm" /></button></div><button onClick={() => { setSaved(true); toast.success("Preferências salvas"); }} className="flex items-center gap-2 rounded-[11px] bg-[#193a5a] px-4 py-3 text-[12px] font-bold text-white">{saved ? <Check size={15} /> : <Settings2 size={15} />} {saved ? "Alterações salvas" : "Salvar alterações"}</button></div></div></div>;
+export default function StudyModule({ path }: { path: string }) {
+  const [mobile, setMobile] = useState(false);
+  const data = moduleData[path] || moduleData["/metas"];
+  return (
+    <div className="min-h-screen bg-[#f7f6f1] text-[#193a5a]">
+      <div className="flex min-h-screen">
+        <div className="hidden lg:block"><Sidebar /></div>
+        {mobile && <div className="fixed inset-0 z-50 flex lg:hidden"><button onClick={() => setMobile(false)} className="flex-1 bg-[#193a5a]/30" /><div className="w-[280px]"><Sidebar close={() => setMobile(false)} /></div></div>}
+        <main className="min-w-0 flex-1">
+          <Header onMenu={() => setMobile(true)} title={data.title} />
+          <ModuleContent path={path} />
+        </main>
+      </div>
+    </div>
+  );
 }
-
-function SessionModal({ close }: { close: () => void }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#193a5a]/35 p-5 backdrop-blur-sm"><div className="w-full max-w-[420px] rounded-[22px] bg-[#fffefa] p-6 shadow-2xl"><div className="flex items-start justify-between"><div><div className="mb-2 flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#e9f0f4] text-[#193a5a]"><Timer size={19} /></div><h2 className="font-display text-[23px] font-bold tracking-[-0.045em] text-[#193a5a]">Registrar sessão</h2><p className="mt-1 text-[12px] font-medium text-[#98a4a7]">Dê crédito ao tempo que você investiu.</p></div><button onClick={close} className="rounded-lg p-2 text-[#9eabad]"><X size={18} /></button></div><label className="mt-6 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#8f9ca0]">Tema estudado</label><select className="mt-2 w-full rounded-[11px] border border-[#e2e6e2] bg-white px-3 py-3 text-[12px] font-semibold text-[#45606d]"><option>Revisar hooks do React</option><option>Praticar consultas SQL</option></select><button onClick={() => { close(); toast.success("Sessão registrada! +45 min no seu progresso."); }} className="mt-6 flex w-full items-center justify-center gap-2 rounded-[11px] bg-[#193a5a] py-3 text-[12px] font-bold text-white"><Check size={15} /> Salvar sessão</button></div></div>; }
-
-export default function StudyModule({ path }: { path: string }) { const [mobile, setMobile] = useState(false); const data = moduleData[path] || moduleData["/metas"]; return <div className="min-h-screen bg-[#f7f6f1] text-[#193a5a]"><div className="flex min-h-screen"><div className="hidden lg:block"><Sidebar /></div>{mobile && <div className="fixed inset-0 z-50 flex lg:hidden"><button onClick={() => setMobile(false)} className="flex-1 bg-[#193a5a]/30" /><div className="w-[280px]"><Sidebar close={() => setMobile(false)} /></div></div>}<main className="min-w-0 flex-1"><Header onMenu={() => setMobile(true)} title={data.title} /><ModuleContent path={path} /></main></div></div>; }

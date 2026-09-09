@@ -1,24 +1,20 @@
-import { auth } from "@/auth";
-import { db } from "@/db";
-import { categories } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { requireUser } from "@/lib/auth-guard";
+import { jsonOk, withApiErrorHandling } from "@/lib/api-response";
+import { categoryService } from "@/services/categoryService";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return new Response(JSON.stringify({ error: "Unauthenticated" }), { status: 401 });
-
-  const rows = await db.select().from(categories).where(eq(categories.userId, session.user.id));
-  return new Response(JSON.stringify(rows), { status: 200 });
+  return withApiErrorHandling(async () => {
+    const user = await requireUser();
+    const rows = await categoryService.list(user.id);
+    return jsonOk(rows);
+  });
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) return new Response(JSON.stringify({ error: "Unauthenticated" }), { status: 401 });
-
-  const body = await req.json().catch(() => ({}));
-  const { name, color } = body as { name?: string; color?: string };
-  if (!name) return new Response(JSON.stringify({ error: "name is required" }), { status: 400 });
-
-  const result = await db.insert(categories).values({ userId: session.user.id, name, color: color ?? "#80aeca" }).returning();
-  return new Response(JSON.stringify(result[0]), { status: 201 });
+  return withApiErrorHandling(async () => {
+    const user = await requireUser();
+    const body = await req.json().catch(() => ({}));
+    const created = await categoryService.create(user.id, body);
+    return jsonOk(created, 201);
+  });
 }

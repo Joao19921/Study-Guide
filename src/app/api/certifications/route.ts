@@ -1,24 +1,20 @@
-import { auth } from "@/auth";
-import { db } from "@/db";
-import { certifications } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { requireUser } from "@/lib/auth-guard";
+import { jsonOk, withApiErrorHandling } from "@/lib/api-response";
+import { certificationService } from "@/services/certificationService";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return new Response(JSON.stringify({ error: "Unauthenticated" }), { status: 401 });
-
-  const rows = await db.select().from(certifications).where(eq(certifications.userId, session.user.id));
-  return new Response(JSON.stringify(rows), { status: 200 });
+  return withApiErrorHandling(async () => {
+    const user = await requireUser();
+    const rows = await certificationService.list(user.id);
+    return jsonOk(rows);
+  });
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) return new Response(JSON.stringify({ error: "Unauthenticated" }), { status: 401 });
-
-  const body = await req.json().catch(() => ({}));
-  const { name, provider, examDate } = body as any;
-  if (!name) return new Response(JSON.stringify({ error: "name is required" }), { status: 400 });
-
-  const result = await db.insert(certifications).values({ userId: session.user.id, name, provider: provider ?? null, examDate: examDate ? new Date(examDate) : null }).returning();
-  return new Response(JSON.stringify(result[0]), { status: 201 });
+  return withApiErrorHandling(async () => {
+    const user = await requireUser();
+    const body = await req.json().catch(() => ({}));
+    const created = await certificationService.create(user.id, body);
+    return jsonOk(created, 201);
+  });
 }
