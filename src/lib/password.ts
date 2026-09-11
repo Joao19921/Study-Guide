@@ -1,0 +1,23 @@
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+
+const KEY_LENGTH = 64;
+const SALT_LENGTH = 16;
+
+export function hashPassword(password: string) {
+  const salt = randomBytes(SALT_LENGTH).toString("hex");
+  const hash = scryptSync(password, salt, KEY_LENGTH).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string) {
+  const [salt, hash] = storedHash.split(":");
+  if (!salt || !hash) return false;
+
+  const derivedKey = scryptSync(password, salt, KEY_LENGTH);
+  const storedKey = Buffer.from(hash, "hex");
+  return storedKey.length === derivedKey.length && timingSafeEqual(storedKey, derivedKey);
+}
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}

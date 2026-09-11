@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 
-const publicRoutes = ["/login"];
+const publicRoutes = ["/login", "/cadastro"];
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
