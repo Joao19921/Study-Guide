@@ -15,6 +15,13 @@
       "when": 1788920457733,
       "tag": "0001_strange_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789167809303,
+      "tag": "0002_add_password_hash",
+      "breakpoints": true
     }
   ]
 }
