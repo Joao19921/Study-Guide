@@ -9,7 +9,7 @@ export default auth((req) => {
 
   if (req.nextUrl.pathname === "/cadastro") {
     if (!isLoggedIn) return Response.redirect(new URL("/login", req.nextUrl));
-    if (!isAdmin) return Response.redirect(new URL("/", req.nextUrl));
+    return Response.redirect(new URL(isAdmin ? "/admin" : "/", req.nextUrl));
   }
 
   if (!isLoggedIn && !isPublicRoute) {
