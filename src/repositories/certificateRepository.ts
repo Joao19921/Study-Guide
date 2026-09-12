@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { certificates, users } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 export const certificateRepository = {
   async listByUser(userId: string) {
@@ -23,7 +23,7 @@ export const certificateRepository = {
       })
       .from(certificates)
       .innerJoin(users, eq(users.id, certificates.userId))
-      .where(and(eq(certificates.verified, false), eq(certificates.verifiedAt, null)));
+      .where(and(eq(certificates.verified, false), isNull(certificates.verifiedAt)));
   },
 
   async create(input: {
