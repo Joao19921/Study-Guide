@@ -7,7 +7,7 @@ import {
   tasks,
   users,
 } from "@/db/schema";
-import { and, asc, count, eq, gte, lt, lte, sql, sum } from "drizzle-orm";
+import { and, asc, count, eq, gte, lt, lte, sql } from "drizzle-orm";
 
 export const competitionRepository = {
   async findSeasonById(id: string) {
@@ -36,10 +36,7 @@ export const competitionRepository = {
   },
 
   async createSeason(input: { name: string; startsAt: Date; endsAt: Date }) {
-    const rows = await db
-      .insert(competitionSeasons)
-      .values(input)
-      .returning();
+    const rows = await db.insert(competitionSeasons).values(input).returning();
     return rows[0];
   },
 
@@ -127,40 +124,17 @@ export const competitionRepository = {
       .orderBy(asc(competitionResults.position));
   },
 
-  async replaceResults(seasonId: string, results: Array<{
-    userId: string;
-    score: number;
-    position: number;
-    certificates: number;
-    performancePoints: number;
-    certificatePoints: number;
-  }>) {
-    if (!results.length) return [];
-
-    return db
-      .insert(competitionResults)
-      .values(results.map((result) => ({ seasonId, ...result })))
-      .onConflictDoUpdate({
-        target: [competitionResults.id],
-        set: {
-          score: sql`excluded.score`,
-          position: sql`excluded.position`,
-          certificates: sql`excluded.certificates`,
-          performancePoints: sql`excluded.performance_points`,
-          certificatePoints: sql`excluded.certificate_points`,
-        },
-      })
-      .returning();
-  },
-
-  async snapshotResults(seasonId: string, results: Array<{
-    userId: string;
-    score: number;
-    position: number;
-    certificates: number;
-    performancePoints: number;
-    certificatePoints: number;
-  }>) {
+  async snapshotResults(
+    seasonId: string,
+    results: Array<{
+      userId: string;
+      score: number;
+      position: number;
+      certificates: number;
+      performancePoints: number;
+      certificatePoints: number;
+    }>,
+  ) {
     if (!results.length) return [];
 
     return db
