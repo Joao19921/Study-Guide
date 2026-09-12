@@ -16,8 +16,9 @@ export const competitionService = {
   async createSeason(input: unknown) {
     const data = createCompetitionSeasonSchema.parse(input);
     const now = new Date();
-    const status = data.startsAt <= now && data.endsAt > now ? "active" : "scheduled";
-    return competitionRepository.createSeason({ ...data, status } as never);
+    const status: "scheduled" | "active" =
+      data.startsAt <= now && data.endsAt > now ? "active" : "scheduled";
+    return competitionRepository.createSeason({ ...data, status });
   },
 
   async listSeasons() {
@@ -33,6 +34,9 @@ export const competitionService = {
   async getCurrentSeason() {
     const season = await competitionRepository.findCurrentSeason();
     if (!season) throw new ApiError(404, "No active competition season");
+    if (season.status === "scheduled") {
+      return competitionRepository.activateSeason(season.id);
+    }
     return season;
   },
 
@@ -79,7 +83,7 @@ export const competitionService = {
     const maxConsistency = Math.max(0, ...raw.map((item) => item.activeDays));
     const maxCertificates = Math.max(0, ...raw.map((item) => item.certificatePointsRaw));
 
-    const ranked = raw
+    return raw
       .map((item) => {
         const performanceScore = normalize(item.performanceRaw, maxPerformance);
         const certificateScore = normalize(item.certificatePointsRaw, maxCertificates);
@@ -94,8 +98,11 @@ export const competitionService = {
         const score = performancePoints + certificatePoints;
 
         return {
-          ...item,
+          userId: item.userId,
+          userName: item.userName,
           score,
+          position: 0,
+          certificates: item.certificates,
           performancePoints,
           certificatePoints,
           consistencyPoints: Math.round(
@@ -111,8 +118,6 @@ export const competitionService = {
           a.userId.localeCompare(b.userId),
       )
       .map((item, index) => ({ ...item, position: index + 1 }));
-
-    return ranked;
   },
 
   async me(userId: string) {
