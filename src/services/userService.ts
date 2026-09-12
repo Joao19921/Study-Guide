@@ -1,4 +1,5 @@
 import { userRepository } from "@/repositories/userRepository";
+import { adminAuditRepository } from "@/repositories/adminAuditRepository";
 import { ApiError } from "@/lib/api-error";
 import { normalizeEmail } from "@/lib/password";
 import { updateAdminUserSchema } from "@/validations/adminUsers";
@@ -16,6 +17,12 @@ export const userService = {
     }
     const updated = await userRepository.updateRole(id, data.role);
     if (!updated) throw new ApiError(404, "User not found");
+    await adminAuditRepository.create({
+      adminUserId: actingAdminId,
+      targetUserId: id,
+      action: "user.role_updated",
+      metadata: { role: data.role },
+    });
     return updated;
   },
 
@@ -34,6 +41,12 @@ export const userService = {
     }
     const updated = await userRepository.updateProfile(id, normalized);
     if (!updated) throw new ApiError(404, "User not found");
+    await adminAuditRepository.create({
+      adminUserId: actingAdminId,
+      targetUserId: id,
+      action: "user.updated",
+      metadata: { fields: Object.keys(data) },
+    });
     return updated;
   },
 };
