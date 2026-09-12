@@ -87,6 +87,21 @@ export default function AdminPanel() {
     await load();
   }
 
+  async function resetUserPassword(id: string) {
+    setMessage("");
+    const response = await fetch(`/api/admin/users/${id}/reset-password`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setMessage(data.error ?? "Não foi possível gerar o link de redefinição.");
+      return;
+    }
+    setResetLink(`${window.location.origin}/redefinir-senha?token=${encodeURIComponent(data.resetToken)}`);
+    setMessage("Link de redefinição gerado. Envie-o ao usuário por um canal seguro.");
+  }
+
   async function updateUser(id: string, payload: Record<string, unknown>) {
     const response = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
@@ -146,7 +161,10 @@ export default function AdminPanel() {
                 <p className="font-medium">{user.name || "Sem nome"}</p>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button className="rounded-md border px-3 py-1 text-sm" onClick={() => resetUserPassword(user.id)}>
+                  Redefinir senha
+                </button>
                 <button className="rounded-md border px-3 py-1 text-sm" onClick={() => updateUser(user.id, { active: !user.active })}>
                   {user.active ? "Desativar" : "Ativar"}
                 </button>
