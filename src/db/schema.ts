@@ -7,6 +7,7 @@ import {
   real,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -130,27 +131,31 @@ export const competitionSeasons = pgTable("competition_seasons", {
   name: text("name").notNull(),
   startsAt: timestamp("starts_at", { mode: "date" }).notNull(),
   endsAt: timestamp("ends_at", { mode: "date" }).notNull(),
-  status: text("status").notNull().default("scheduled"), // scheduled | active | closed
+  status: text("status").notNull().default("scheduled"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const competitionResults = pgTable("competition_results", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  seasonId: uuid("season_id")
-    .notNull()
-    .references(() => competitionSeasons.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  score: integer("score").notNull(),
-  position: integer("position").notNull(),
-  certificates: integer("certificates").notNull().default(0),
-  performancePoints: integer("performance_points").notNull().default(0),
-  certificatePoints: integer("certificate_points").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (result) => [
-  primaryKey({ columns: [result.seasonId, result.userId] }),
-]);
+export const competitionResults = pgTable(
+  "competition_results",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => competitionSeasons.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    position: integer("position").notNull(),
+    certificates: integer("certificates").notNull().default(0),
+    performancePoints: integer("performance_points").notNull().default(0),
+    certificatePoints: integer("certificate_points").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (result) => [
+    unique("competition_results_season_user_unique").on(result.seasonId, result.userId),
+  ],
+);
 
 export const goals = pgTable("goals", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -158,7 +163,7 @@ export const goals = pgTable("goals", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  period: text("period").notNull().default("weekly"), // weekly | monthly | quarterly | yearly
+  period: text("period").notNull().default("weekly"),
   targetHours: real("target_hours"),
   progress: integer("progress").notNull().default(0),
   dueDate: timestamp("due_date", { mode: "date" }),
@@ -187,9 +192,9 @@ export const resources = pgTable("resources", {
     onDelete: "set null",
   }),
   title: text("title").notNull(),
-  type: text("type").notNull().default("link"), // curso | livro | link | plataforma | artigo
+  type: text("type").notNull().default("link"),
   url: text("url"),
-  status: text("status").notNull().default("nao_iniciado"), // nao_iniciado | em_andamento | concluido
+  status: text("status").notNull().default("nao_iniciado"),
   progress: integer("progress").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -218,7 +223,7 @@ export const tasks = pgTable("tasks", {
   }),
   title: text("title").notNull(),
   subtitle: text("subtitle"),
-  priority: text("priority").notNull().default("media"), // alta | media | baixa
+  priority: text("priority").notNull().default("media"),
   done: boolean("done").notNull().default(false),
   completedAt: timestamp("completed_at", { mode: "date" }),
   dueDate: timestamp("due_date", { mode: "date" }),
