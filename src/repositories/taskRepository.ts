@@ -3,7 +3,7 @@ import { tasks } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 
 export type NewTask = typeof tasks.$inferInsert;
-export type TaskUpdate = Partial<Pick<NewTask, "title" | "subtitle" | "priority" | "done" | "dueDate" | "themeId">>;
+export type TaskUpdate = Partial<Pick<NewTask, "title" | "subtitle" | "priority" | "done" | "completedAt" | "dueDate" | "themeId">>;
 
 export const taskRepository = {
   listByUser(userId: string) {
