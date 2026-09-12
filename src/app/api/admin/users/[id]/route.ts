@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: Params) {
     const admin = await requireAdmin();
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
-    const updated = await userService.updateRole(id, admin.id, body);
+    const updated = await userService.update(id, admin.id, body);
     return jsonOk(updated);
   });
 }
