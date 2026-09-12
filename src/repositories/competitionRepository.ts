@@ -7,7 +7,7 @@ import {
   tasks,
   users,
 } from "@/db/schema";
-import { and, asc, count, eq, gte, lt, lte, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, lt, lte, or, sql } from "drizzle-orm";
 
 export const competitionRepository = {
   async findSeasonById(id: string) {
@@ -23,7 +23,7 @@ export const competitionRepository = {
         and(
           lte(competitionSeasons.startsAt, now),
           gte(competitionSeasons.endsAt, now),
-          eq(competitionSeasons.status, "active"),
+          or(eq(competitionSeasons.status, "active"), eq(competitionSeasons.status, "scheduled")),
         ),
       )
       .orderBy(asc(competitionSeasons.startsAt))
@@ -35,7 +35,7 @@ export const competitionRepository = {
     return db.select().from(competitionSeasons).orderBy(asc(competitionSeasons.startsAt));
   },
 
-  async createSeason(input: { name: string; startsAt: Date; endsAt: Date }) {
+  async createSeason(input: { name: string; startsAt: Date; endsAt: Date; status: "scheduled" | "active" }) {
     const rows = await db.insert(competitionSeasons).values(input).returning();
     return rows[0];
   },
