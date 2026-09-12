@@ -51,7 +51,7 @@ export const competitionService = {
       competitionRepository.activeUsers(),
       competitionRepository.studyMetrics(season.startsAt, season.endsAt),
       competitionRepository.taskMetrics(season.startsAt, season.endsAt),
-      competitionRepository.certificateMetrics(),
+      competitionRepository.certificateMetrics(season.startsAt, season.endsAt),
     ]);
 
     const studyMap = new Map(study.map((item) => [item.userId, item]));
