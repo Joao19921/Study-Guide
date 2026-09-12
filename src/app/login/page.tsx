@@ -49,7 +49,10 @@ export default function LoginPage() {
               {error && <p role="alert" className="rounded-[10px] bg-[#fff0ed] px-3 py-2 text-[12px] font-semibold text-[#c85f50]">{error}</p>}
               <button disabled={loading} type="submit" className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-[#193a5a] py-3.5 text-[12px] font-bold text-white transition hover:bg-[#254f73] disabled:cursor-wait disabled:opacity-70">{loading && <Loader2 size={16} className="animate-spin" />} {loading ? "Entrando..." : "Entrar"}</button>
             </form>
-            <p className="mt-6 text-center text-[12px] font-medium text-[#8e9da1]">Ainda não tem uma conta? <Link href="/cadastro" className="font-bold text-[#193a5a] hover:text-[#ef806e]">Criar cadastro</Link></p>
+            <div className="mt-5 flex items-center justify-between text-[11px] font-semibold">
+              <Link href="/recuperar-acesso" className="text-[#ef806e] hover:underline">Esqueci minha senha</Link>
+              <Link href="/cadastro" className="text-[#193a5a] hover:text-[#ef806e]">Criar cadastro</Link>
+            </div>
             <p className="mt-8 text-center text-[11px] font-semibold text-[#9aa5a7]">Ao entrar, você concorda com os termos de uso do StudyHub.</p>
           </div>
         </section>
