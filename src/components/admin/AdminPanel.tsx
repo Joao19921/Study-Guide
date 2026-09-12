@@ -20,6 +20,23 @@ type Certificate = {
   issuedAt: string;
 };
 
+type AdminData = {
+  users: User[];
+  pending: Certificate[];
+};
+
+async function fetchAdminData(): Promise<AdminData> {
+  const [usersResponse, certificatesResponse] = await Promise.all([
+    fetch("/api/admin/users", { cache: "no-store" }),
+    fetch("/api/admin/certificates", { cache: "no-store" }),
+  ]);
+
+  return {
+    users: usersResponse.ok ? await usersResponse.json() : [],
+    pending: certificatesResponse.ok ? await certificatesResponse.json() : [],
+  };
+}
+
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
   const [pending, setPending] = useState<Certificate[]>([]);
@@ -30,16 +47,23 @@ export default function AdminPanel() {
   const [message, setMessage] = useState("");
 
   async function load() {
-    const [usersResponse, certificatesResponse] = await Promise.all([
-      fetch("/api/admin/users", { cache: "no-store" }),
-      fetch("/api/admin/certificates", { cache: "no-store" }),
-    ]);
-    if (usersResponse.ok) setUsers(await usersResponse.json());
-    if (certificatesResponse.ok) setPending(await certificatesResponse.json());
+    const data = await fetchAdminData();
+    setUsers(data.users);
+    setPending(data.pending);
   }
 
   useEffect(() => {
-    void load();
+    let mounted = true;
+
+    void fetchAdminData().then((data) => {
+      if (!mounted) return;
+      setUsers(data.users);
+      setPending(data.pending);
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   async function createUser(event: FormEvent) {
