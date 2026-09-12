@@ -11,7 +11,6 @@ async function assertThemeOwnership(themeId: string | null | undefined, userId: 
 }
 
 export const taskService = {
-  /** Priorização inteligente: pendentes primeiro, depois por prioridade e prazo. */
   async list(userId: string) {
     const rows = await taskRepository.listByUser(userId);
     return sortTasksByPriority(rows);
@@ -33,7 +32,14 @@ export const taskService = {
   async update(id: string, userId: string, input: unknown) {
     const data = updateTaskSchema.parse(input);
     if (data.themeId !== undefined) await assertThemeOwnership(data.themeId, userId);
-    const updated = await taskRepository.updateForUser(id, userId, data);
+
+    const update = {
+      ...data,
+      ...(data.done === true ? { completedAt: new Date() } : {}),
+      ...(data.done === false ? { completedAt: null } : {}),
+    };
+
+    const updated = await taskRepository.updateForUser(id, userId, update);
     if (!updated) throw new ApiError(404, "Task not found");
     return updated;
   },

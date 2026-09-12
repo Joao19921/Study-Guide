@@ -1,16 +1,22 @@
 import { auth } from "@/auth";
 
-const publicRoutes = ["/login", "/cadastro"];
+const publicRoutes = ["/login", "/redefinir-senha"];
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isPublicRoute = publicRoutes.includes(req.nextUrl.pathname);
+  const isAdmin = req.auth?.user?.role === "admin";
+
+  if (req.nextUrl.pathname === "/cadastro") {
+    if (!isLoggedIn) return Response.redirect(new URL("/login", req.nextUrl));
+    return Response.redirect(new URL(isAdmin ? "/admin" : "/", req.nextUrl));
+  }
 
   if (!isLoggedIn && !isPublicRoute) {
     return Response.redirect(new URL("/login", req.nextUrl));
   }
 
-  if (isLoggedIn && isPublicRoute) {
+  if (isLoggedIn && isPublicRoute && req.nextUrl.pathname === "/login") {
     return Response.redirect(new URL("/", req.nextUrl));
   }
 });

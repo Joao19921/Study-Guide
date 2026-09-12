@@ -9,3 +9,12 @@ export async function GET() {
     return jsonOk(rows);
   });
 }
+
+export async function POST(req: Request) {
+  return withApiErrorHandling(async () => {
+    const admin = await requireAdmin();
+    const body = await req.json().catch(() => ({}));
+    const result = await userService.create(admin.id, body);
+    return jsonOk(result, 201);
+  });
+}

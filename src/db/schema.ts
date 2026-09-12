@@ -7,6 +7,7 @@ import {
   real,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -20,7 +21,11 @@ export const users = pgTable("users", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   role: text("role").notNull().default("user"),
+  active: boolean("active").notNull().default(true),
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
+  deactivatedAt: timestamp("deactivated_at", { mode: "date" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const accounts = pgTable(
@@ -105,21 +110,66 @@ export const certifications = pgTable("certifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const certificates = pgTable("certificates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  provider: text("provider"),
+  credentialUrl: text("credential_url"),
+  issuedAt: timestamp("issued_at", { mode: "date" }).notNull(),
+  verified: boolean("verified").notNull().default(false),
+  points: integer("points").notNull().default(100),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  verifiedAt: timestamp("verified_at", { mode: "date" }),
+  verifiedBy: uuid("verified_by").references(() => users.id, { onDelete: "set null" }),
+});
+
+export const competitionSeasons = pgTable("competition_seasons", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  startsAt: timestamp("starts_at", { mode: "date" }).notNull(),
+  endsAt: timestamp("ends_at", { mode: "date" }).notNull(),
+  status: text("status").notNull().default("scheduled"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const competitionResults = pgTable(
+  "competition_results",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => competitionSeasons.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    position: integer("position").notNull(),
+    certificates: integer("certificates").notNull().default(0),
+    performancePoints: integer("performance_points").notNull().default(0),
+    certificatePoints: integer("certificate_points").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (result) => [
+    unique("competition_results_season_user_unique").on(result.seasonId, result.userId),
+  ],
+);
+
 export const goals = pgTable("goals", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  period: text("period").notNull().default("weekly"), // weekly | monthly | quarterly | yearly
+  period: text("period").notNull().default("weekly"),
   targetHours: real("target_hours"),
   progress: integer("progress").notNull().default(0),
   dueDate: timestamp("due_date", { mode: "date" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// certification <-> theme relation, used to derive certification progress
-// and to build the annual roadmap (competências necessárias por certificação).
 export const certificationThemes = pgTable(
   "certification_themes",
   {
@@ -133,7 +183,6 @@ export const certificationThemes = pgTable(
   (t) => [primaryKey({ columns: [t.certificationId, t.themeId] })]
 );
 
-// Material/recurso de estudo (biblioteca): links, cursos, livros etc.
 export const resources = pgTable("resources", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
@@ -143,9 +192,9 @@ export const resources = pgTable("resources", {
     onDelete: "set null",
   }),
   title: text("title").notNull(),
-  type: text("type").notNull().default("link"), // curso | livro | link | plataforma | artigo
+  type: text("type").notNull().default("link"),
   url: text("url"),
-  status: text("status").notNull().default("nao_iniciado"), // nao_iniciado | em_andamento | concluido
+  status: text("status").notNull().default("nao_iniciado"),
   progress: integer("progress").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -174,8 +223,9 @@ export const tasks = pgTable("tasks", {
   }),
   title: text("title").notNull(),
   subtitle: text("subtitle"),
-  priority: text("priority").notNull().default("media"), // alta | media | baixa
+  priority: text("priority").notNull().default("media"),
   done: boolean("done").notNull().default(false),
+  completedAt: timestamp("completed_at", { mode: "date" }),
   dueDate: timestamp("due_date", { mode: "date" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

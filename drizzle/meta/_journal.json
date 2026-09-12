@@ -2,26 +2,10 @@
   "version": "7",
   "dialect": "postgresql",
   "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1788918579456,
-      "tag": "0000_romantic_blazing_skull",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1788920457733,
-      "tag": "0001_strange_shockwave",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1789167809303,
-      "tag": "0002_add_password_hash",
-      "breakpoints": true
-    }
+    { "idx": 0, "version": "7", "when": 1788918579456, "tag": "0000_romantic_blazing_skull", "breakpoints": true },
+    { "idx": 1, "version": "7", "when": 1788920457733, "tag": "0001_strange_shockwave", "breakpoints": true },
+    { "idx": 2, "version": "7", "when": 1789167809303, "tag": "0002_add_password_hash", "breakpoints": true },
+    { "idx": 3, "version": "7", "when": 1789229561490, "tag": "0003_admin_competition", "breakpoints": true },
+    { "idx": 4, "version": "7", "when": 1789229885005, "tag": "0004_admin_security", "breakpoints": true }
   ]
 }
