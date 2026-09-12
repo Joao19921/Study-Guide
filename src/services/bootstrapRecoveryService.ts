@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { ApiError } from "@/lib/api-error";
@@ -38,7 +38,7 @@ export const bootstrapRecoveryService = {
         deactivatedAt: null,
         updatedAt: now,
       })
-      .where(and(eq(users.id, candidates[0].id), isNull(users.deletedAt)))
+      .where(eq(users.id, candidates[0].id))
       .returning({ id: users.id });
 
     if (!updated) throw new ApiError(404, "User not found");
