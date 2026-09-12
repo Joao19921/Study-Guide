@@ -87,7 +87,7 @@ export const competitionRepository = {
       .groupBy(tasks.userId);
   },
 
-  async certificateMetrics() {
+  async certificateMetrics(start: Date, end: Date) {
     return db
       .select({
         userId: certificates.userId,
@@ -95,7 +95,13 @@ export const competitionRepository = {
         points: sql<number>`coalesce(sum(${certificates.points}), 0)`,
       })
       .from(certificates)
-      .where(eq(certificates.verified, true))
+      .where(
+        and(
+          eq(certificates.verified, true),
+          gte(certificates.issuedAt, start),
+          lt(certificates.issuedAt, end),
+        ),
+      )
       .groupBy(certificates.userId);
   },
 
@@ -103,7 +109,7 @@ export const competitionRepository = {
     return db
       .select({ id: users.id, name: users.name, email: users.email })
       .from(users)
-      .where(eq(users.active, true));
+      .where(and(eq(users.active, true), eq(users.role, "user")));
   },
 
   async listResults(seasonId: string) {
